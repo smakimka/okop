@@ -32,17 +32,21 @@ func main() {
 		panic(err)
 	}
 
-	config, err := config.ParsePoolConfig(cfg)
+	poolCfg, err := config.ParsePoolConfig(cfg)
 	if err != nil {
 		panic(err)
 	}
 
-	proxyPool, err := proxy_pool.New(config)
+	proxyPool, err := proxy_pool.New(poolCfg)
 	if err != nil {
 		panic(err)
 	}
 
-	dbConfig, err := pgxpool.ParseConfig("postgres://parser:parser_password@localhost:5432/parser_db?sslmode=disable")
+	pgCfg, err := config.ParsePostgres()
+	if err != nil {
+		panic(err)
+	}
+	dbConfig, err := pgxpool.ParseConfig(pgCfg.DSN())
 	if err != nil {
 		panic(err)
 	}

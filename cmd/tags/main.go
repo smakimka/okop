@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"okop/internal/config"
 	"okop/internal/repo"
 	"okop/pkg/steam_proxy"
 	"os"
@@ -15,7 +16,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	dbConfig, err := pgxpool.ParseConfig("postgres://parser:parser_password@localhost:5432/parser_db?sslmode=disable")
+	pgCfg, err := config.ParsePostgres()
+	if err != nil {
+		panic(err)
+	}
+	dbConfig, err := pgxpool.ParseConfig(pgCfg.DSN())
 	if err != nil {
 		panic(err)
 	}

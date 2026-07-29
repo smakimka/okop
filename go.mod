@@ -4,6 +4,7 @@ go 1.24.2
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/lmittmann/tint v1.2.0
 )

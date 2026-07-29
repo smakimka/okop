@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: parser
       POSTGRES_PASSWORD: parser_password
-      POSTGRES_DB: parser_db
+      POSTGRES_DB: games_db
     ports:
       - "5432:5432"
     volumes:
@@ -13,6 +13,11 @@ services:
 
   parser:
     build: .
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: parser
+      POSTGRES_PASSWORD: parser_password
+      POSTGRES_DB: games_db
     depends_on:
       - postgres
 

@@ -1,7 +1,7 @@
 # justfile
 set windows-shell := ["C:\\Program Files\\Git\\bin\\sh.exe","-c"]
 # Set the database connection string as a variable
-DB_URL := "postgres://parser:parser_password@localhost:5432/parser_db?sslmode=disable"
+DB_URL := "postgres://parser:parser_password@localhost:5432/games_db?sslmode=disable"
 
 # Task to create a new migration
 new-migration migration_name:
@@ -21,7 +21,7 @@ migration-status:
 
 #dump db into dump.sql
 dump:
-    PGPASSWORD="parser_password" pg_dump -U parser -h localhost -F p parser_db > dump.sql
+    PGPASSWORD="parser_password" pg_dump -U parser -h localhost -F p games_db > dump.sql
 
 # simple go run parser
 run:
