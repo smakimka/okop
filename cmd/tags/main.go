@@ -1,0 +1,51 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"okop/internal/repo"
+	"okop/pkg/steam_proxy"
+	"os"
+	"os/signal"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	dbConfig, err := pgxpool.ParseConfig("postgres://parser:parser_password@localhost:5432/parser_db?sslmode=disable")
+	if err != nil {
+		panic(err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, dbConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	r := repo.New(pool)
+
+	client, err := steam_proxy.New(steam_proxy.Config{
+		Name: "test",
+		URL:  "",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	res, err := client.Tags(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("got tags ", len(res.Response.Tags))
+
+	for _, tag := range res.Response.Tags {
+		r.UpdateTag(ctx, repo.Tag{
+			ID:   tag.TagID,
+			Name: tag.Name,
+		})
+	}
+}
