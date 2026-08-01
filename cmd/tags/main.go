@@ -48,9 +48,11 @@ func main() {
 	fmt.Println("got tags ", len(res.Response.Tags))
 
 	for _, tag := range res.Response.Tags {
-		r.UpdateTag(ctx, repo.Tag{
+		if err := r.UpdateTag(ctx, repo.Tag{
 			ID:   tag.TagID,
 			Name: tag.Name,
-		})
+		}); err != nil {
+			fmt.Println("failed to update tag", tag.TagID, err)
+		}
 	}
 }
