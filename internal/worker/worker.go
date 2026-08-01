@@ -61,20 +61,33 @@ func (w *Worker) process(ctx context.Context, item work.Item) {
 		return
 	}
 
+	// Every app in the chunk is terminal after this point — nothing here is
+	// requeued — so each one lands in exactly one bucket and the buckets sum
+	// back to len(item.Apps).
+	var ok, bad, failed int
 	for _, info := range info.Response.StoreItems {
 		if info.Success == 0 || !info.Visible {
 			id := strconv.Itoa(int(info.AppID))
 			l.Error("success false", "id", id)
-			observer.ObserveSuccessFalse()
+			bad++
 			continue
 		}
 
 		if err := w.repo.UpsertGame(ctx, &info); err != nil {
 			l.Error("upsert failed", "app_id", info.AppID, "error", err)
+			failed++
+			continue
 		}
+		ok++
 	}
 
-	observer.ObserveSuccess(handle.Name())
-	l.Debug("success", "proxy", handle.Name())
+	// Steam may omit apps from the response entirely.
+	if missing := len(item.Apps) - len(info.Response.StoreItems); missing > 0 {
+		observer.ObserveMissing(missing)
+	}
+	observer.ObserveSuccessFalse(bad)
+	observer.ObserveUpsertFailed(failed)
+	observer.ObserveSuccess(handle.Name(), ok)
+
 	w.wg.Done()
 }

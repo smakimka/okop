@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"okop/internal/config"
 	"okop/internal/observer"
 	"okop/internal/provider"
 	"okop/internal/repo"
 	"okop/internal/retry_queue"
+	"okop/internal/ui"
 	"okop/internal/work"
 	"okop/internal/worker"
 	"okop/pkg/logger"
@@ -15,6 +17,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -74,7 +77,21 @@ func main() {
 	var appWG sync.WaitGroup
 
 	go queue.Run(ctx, workCh)
-	observer.SendObservations(ctx, queue.Len)
+
+	// On a terminal, pin a status bar to the bottom and route log output through
+	// it. Otherwise fall back to periodic summary lines, which is what piped
+	// output and `docker compose up` get.
+	if ui.IsTerminal(os.Stderr) {
+		bar := ui.New(os.Stderr, func(width int) []string {
+			return ui.StatusLines(observer.Snapshot(), queue.Len(), width)
+		})
+		logger.Configure(bar.LogWriter(), slog.LevelInfo)
+
+		bar.Run()
+		defer bar.Stop()
+	} else {
+		observer.SendObservations(ctx, queue.Len)
+	}
 
 	for range len(cfg.Proxies) {
 		w := worker.New(proxyPool, r, queue, &appWG)
@@ -95,8 +112,23 @@ func main() {
 
 	select {
 	case <-done:
-		logger.Global().Info("all apps processed")
+		summarize("all apps processed")
 	case <-ctx.Done():
-		logger.Global().Info("interrupted")
+		summarize("interrupted")
 	}
+}
+
+// summarize logs the final tally. It runs before the deferred bar.Stop, so the
+// line is written through the bar's writer and lands above it.
+func summarize(msg string) {
+	s := observer.Snapshot()
+	logger.Global().Info(msg,
+		"processed", s.Processed,
+		"total", s.Total,
+		"ok", s.OK,
+		"success_false", s.SuccessFalse,
+		"missing", s.Missing,
+		"failed", s.Failed,
+		"elapsed", s.Elapsed.Round(time.Second),
+	)
 }

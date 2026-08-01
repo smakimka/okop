@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"io"
 	"log/slog"
 	"os"
 	"time"
@@ -11,8 +12,15 @@ import (
 var instance *slog.Logger
 
 func init() {
-	instance = slog.New(tint.NewHandler(os.Stderr, &tint.Options{
-		Level:      slog.LevelDebug,
+	Configure(os.Stderr, slog.LevelDebug)
+}
+
+// Configure rebuilds the global logger to write to w at the given level.
+// Callers that render their own output — see internal/ui — pass a writer that
+// keeps log lines from colliding with what is already on screen.
+func Configure(w io.Writer, level slog.Level) {
+	instance = slog.New(tint.NewHandler(w, &tint.Options{
+		Level:      level,
 		TimeFormat: time.Kitchen,
 	}))
 
