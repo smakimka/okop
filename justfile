@@ -1,7 +1,16 @@
 # justfile
 set windows-shell := ["C:\\Program Files\\Git\\bin\\sh.exe","-c"]
+# Postgres connection settings. Names and defaults match internal/config/postgres.go,
+# so overriding the environment affects just recipes and the Go binaries alike.
+PG_HOST := env_var_or_default("POSTGRES_HOST", "localhost")
+PG_PORT := env_var_or_default("POSTGRES_PORT", "5432")
+PG_DB := env_var_or_default("POSTGRES_DB", "games_db")
+PG_USER := env_var_or_default("POSTGRES_USER", "parser")
+PG_PASSWORD := env_var_or_default("POSTGRES_PASSWORD", "parser_password")
+PG_SSLMODE := env_var_or_default("POSTGRES_SSLMODE", "disable")
+
 # Set the database connection string as a variable
-DB_URL := "postgres://parser:parser_password@localhost:5432/games_db?sslmode=disable"
+DB_URL := "postgres://" + PG_USER + ":" + PG_PASSWORD + "@" + PG_HOST + ":" + PG_PORT + "/" + PG_DB + "?sslmode=" + PG_SSLMODE
 
 # Task to create a new migration
 new-migration migration_name:
@@ -21,7 +30,7 @@ migration-status:
 
 #dump db into dump.sql
 dump:
-    PGPASSWORD="parser_password" pg_dump -U parser -h localhost -F p games_db > dump.sql
+    PGPASSWORD="{{PG_PASSWORD}}" pg_dump -U {{PG_USER}} -h {{PG_HOST}} -p {{PG_PORT}} -F p {{PG_DB}} > dump.sql
 
 # simple go run parser
 run:
