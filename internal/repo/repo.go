@@ -404,3 +404,25 @@ func (r *Repo) UpdateTag(ctx context.Context, tag Tag) error {
 
 	return nil
 }
+
+// UnnamedTagIDs returns tags that exist only because a game referenced them.
+// ensureTagsExist inserts the id alone to satisfy the game_tags foreign key, so
+// such a tag stays nameless until something fills the name in.
+func (r *Repo) UnnamedTagIDs(ctx context.Context) ([]int, error) {
+	query, args, _ := sq.NewBuilder().
+		Select("id").
+		From("tags").
+		Where(squirrel.Or{
+			squirrel.Eq{"name": nil},
+			squirrel.Eq{"name": ""},
+		}).
+		OrderBy("id").
+		ToSql()
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return pgx.CollectRows(rows, pgx.RowTo[int])
+}

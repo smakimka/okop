@@ -189,6 +189,41 @@ func (c *Client) Tags(ctx context.Context) (*GetTagListResponse, error) {
 	return &resp, nil
 }
 
+// TagNames resolves names for the given tag ids. Use it for tags Tags does not
+// cover: Steam keeps returning ids on games after dropping them from the store
+// tag list, and those can only be named by asking for them explicitly.
+func (c *Client) TagNames(ctx context.Context, tagIDs []int) (*GetLocalizedNameForTagsResponse, error) {
+	reqData := GetLocalizedNameForTagsRequest{
+		Language: "english",
+		TagIDs:   tagIDs,
+	}
+
+	rawReqData, err := json.Marshal(reqData)
+	if err != nil {
+		return nil, err
+	}
+
+	q := url.Values{}
+	q.Add("input_json", string(rawReqData))
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		"https://api.steampowered.com/IStoreService/GetLocalizedNameForTags/v1/?"+q.Encode(),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp GetLocalizedNameForTagsResponse
+	if err := c.doJSON(req, &resp); err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
 func (c *Client) Name() string {
 	return c.name
 }
